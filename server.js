@@ -15,7 +15,14 @@ let patients = [];
  Similar to inserting node at end of linked list
 */
 app.post("/add", (req, res) => {
-    const { id, name, age } = req.body;
+    let { id, name, age } = req.body;
+
+    // Convert id to string for consistency
+    id = String(id);
+
+    // Default values if not provided
+    name = name || "Unknown";
+    age = age || "Unknown";
 
     // Check duplicate ID
     for (let p of patients) {
@@ -25,36 +32,47 @@ app.post("/add", (req, res) => {
     }
 
     patients.push({ id, name, age });
-    res.json({ message: "Patient added successfully" });
+    res.json({ message: "Patient added successfully", patient: { id, name, age } });
 });
 
 /*
  DISPLAY ALL PATIENTS
 */
 app.get("/patients", (req, res) => {
-    res.json(patients);
+    // Ensure no patient has undefined name or age
+    const safePatients = patients.map(p => ({
+        id: p.id,
+        name: p.name || "Unknown",
+        age: p.age || "Unknown"
+    }));
+    res.json(safePatients);
 });
 
 /*
  SEARCH PATIENT BY ID
 */
 app.get("/search/:id", (req, res) => {
-    const id = req.params.id;
+    const id = String(req.params.id); // convert to string for comparison
 
-    for (let p of patients) {
-        if (p.id === id) {
-            return res.json(p);
-        }
+    const patient = patients.find(p => p.id === id);
+
+    if (patient) {
+        // Ensure name and age are never undefined
+        res.json({
+            id: patient.id,
+            name: patient.name || "Unknown",
+            age: patient.age || "Unknown"
+        });
+    } else {
+        res.json({ message: "Patient not found" });
     }
-
-    res.json({ message: "Patient not found" });
 });
 
 /*
  DELETE PATIENT BY ID
 */
 app.delete("/delete/:id", (req, res) => {
-    const id = req.params.id;
+    const id = String(req.params.id);
     const before = patients.length;
 
     patients = patients.filter(p => p.id !== id);
@@ -74,6 +92,7 @@ app.get("/count", (req, res) => {
 });
 
 // Start server
-app.listen(3000, () => {
-    console.log("Server running on http://localhost:3000");
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+    console.log(`Server running on port ${PORT}`);
 });
